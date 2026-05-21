@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"c:\\\\LOVE\\\\cubach\\\\texture_pack\" /b)",
+      "Bash(mkdir -p /c/LOVE/cubach/pack/tex && cp /c/LOVE/cubach/tex/* /c/LOVE/cubach/pack/tex/ && echo \"done\")",
+      "Bash(pip show *)",
+      "Bash(pip install *)",
+      "Bash(python -c \"import anvil; r = anvil.Region.from_file; print\\(dir\\(anvil\\)\\)\")",
+      "Bash(python -c \"import anvil; help\\(anvil.Chunk.get_block\\)\")",
+      "Bash(python build_atlas.py)",
+      "Bash(python3 -c ' *)",
+      "WebSearch",
+      "Bash(python3 -c \"import anvil; print\\(anvil.__version__\\)\")"
+    ],
+    "additionalDirectories": [
+      "C:\\LOVE\\cubach\\tex"
+    ]
+  }
+}
