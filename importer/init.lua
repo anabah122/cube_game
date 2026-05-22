@@ -8,6 +8,7 @@
 
 local objLoader  = require 'importer.formats.obj'
 local gltfLoader = require 'importer.formats.gltf'
+local terrainLoader = require 'importer.terrain'
 
 local M = {}
 
@@ -17,6 +18,10 @@ end
 
 function M.loadGLTF(path)
     return gltfLoader.load({ path = path })
+end
+
+function M.terrain(path)
+    return terrainLoader.load(path)
 end
 
 return M

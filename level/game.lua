@@ -1,32 +1,49 @@
 local GAME = {}
 
-local matClass = require 'math.mat4'
+local shader = LG.newShader( LF.read('shader/main.glsl') )
 local camera   = require 'class.camera' :new{ x=0, y=80, z=6 }
-local meshes = {}
+
+local matClass = require 'math.mat4'
+local transform = matClass:new()
+
+
+local atlas    = LG.newImage('pack/atlas.png')
+atlas:setFilter('nearest','linear')
+
+local atlasMap = json.decode(LF.read('pack/atlas_map.json'))
+local uvOffsets = {
+    atlasMap.pad / atlas:getWidth(),
+    (atlasMap.cell - 2 * atlasMap.pad) / atlas:getWidth(),
+}
+
+local terrain = require'importer.terrain'.load{
+    path = 'chunks',
+    tex  = atlas,
+    map  = atlasMap,
+}
 
 
 function GAME:draw()
 
-    love.graphics.setWireframe( true )
     local dt = LT.getDelta()
     camera:update(dt)
 
     LG.setDepthMode('lequal', true)
     LG.setMeshCullMode('back')
 
-    local identity = matClass:new():setTransformationMatrix({0,0,0},{0,0,0,1},{1,1,1})
-    shader:send('viewproj',  camera:viewproj())
-    shader:send('transform', identity)
+    shader:send('viewproj',   camera:viewproj())
+    shader:send('uvOffsets',  uvOffsets)
     LG.setShader(shader)
 
-    for _, mesh in ipairs(meshes) do
-        LG.draw(mesh)
+    for _,chunk in pairs( terrain ) do
+        transform:setTransformationMatrix({chunk.x,0,chunk.z},{0,0,0},{1,1,1})
+        shader:send('transform',transform)
+        LG.draw(chunk.mesh)
     end
 
     LG.setShader()
     LG.setDepthMode('always', false)
     LG.setMeshCullMode('none')
-    love.graphics.setWireframe( false )
 
     LG.print(LT.realFPS)
 end

@@ -63,6 +63,7 @@ def do_optimize():
         joined = bpy.context.active_object
         joined.name = target_name
 
+
         verts_world = [joined.matrix_world @ v.co for v in joined.data.vertices]
         min_x = min(v.x for v in verts_world)
         min_y = min(v.y for v in verts_world)
@@ -97,21 +98,15 @@ def do_export(directory):
         obj.select_set(True)
         bpy.context.view_layer.objects.active = obj
 
-        filepath = os.path.join(directory, obj.name + ".glb")
-        bpy.ops.export_scene.gltf(
+        filepath = os.path.join(directory, obj.name + ".obj")
+        bpy.ops.export_scene.obj(
             filepath=filepath,
             use_selection=True,
-            export_format='GLB',
-            export_apply=True,
-            export_materials='PLACEHOLDER',
-            export_texcoords=True,
-            export_normals=True,
-            export_cameras=False,
-            export_lights=False,
-            export_extras=False,
-            export_animations=False,
-            export_skins=False,
-            export_morph=False,
+            use_materials=True,
+            use_normals=True,
+            use_uvs=True,
+            use_triangles=True,
+            use_mesh_modifiers=True,
         )
 
         obj.select_set(False)

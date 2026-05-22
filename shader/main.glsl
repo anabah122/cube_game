@@ -1,23 +1,16 @@
-
-varying vec3  vNormal;
-varying vec2  vLocalUV;
-varying vec4  vTile; // start xy and size xy 
-varying float vLight;
+varying vec2 vCellUV;
+varying vec2 vTexCoord;
 
 #ifdef VERTEX
 
-attribute vec3 VertexNormal;
-attribute vec4 VertexTile;
+attribute vec2 VertexCellUV;
 
 uniform mat4 viewproj;
 uniform mat4 transform;
 
 vec4 position(mat4 transform_projection, vec4 vertex_position) {
-    vNormal  = VertexNormal;
-    vLocalUV = VertexTexCoord.xy;
-    vTile    = VertexTile;
-    float d  = dot(normalize(VertexNormal), normalize(vec3(0.5, 1.0, 0.3)));
-    vLight   = 0.55 + 0.45 * max(d, 0.0);
+    vCellUV   = VertexCellUV;
+    vTexCoord = VertexTexCoord.xy;
     return viewproj * transform * vertex_position;
 }
 
@@ -25,14 +18,13 @@ vec4 position(mat4 transform_projection, vec4 vertex_position) {
 
 #ifdef PIXEL
 
+uniform vec2  uvOffsets;
 uniform float min_alpha;
 
 vec4 effect(vec4 color, Image tex, vec2 texUv, vec2 screen_coords) {
-
-    vec2 uv = vTile.xy + fract(vLocalUV) * vTile.zw;
+    vec2 uv = vCellUV + uvOffsets.x + fract(vTexCoord) * uvOffsets.y;
     vec4 c  = Texel(tex, uv);
-    if (c.a < min_alpha) discard;
-    return vec4(c.rgb * vLight, c.a);
+    return c;
 }
 
 #endif
