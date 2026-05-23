@@ -1,7 +1,7 @@
 # Blender MTL File: 'None'
 # Material Count: 85
 
-newmtl jmc2obj_unknown
+newmtl jmc2obj_wheat_stage_7
 Ns 0.000000
 Ka 1.000000 1.000000 1.000000
 Kd 1.000000 0.000000 1.000000
@@ -10,7 +10,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 1
-map_Kd C:\\LOVE\\Cubach\\tex\\jmc2obj\\unknown.png
+map_Kd C:\\LOVE\\Cubach\\tex\\jmc2obj\\wheat_stage_7.png
 
 newmtl minecraft_block-andesite
 Ns 0.000000

@@ -196,5 +196,8 @@ function Vector3:__tostring()
     return string.format("(%g, %g, %g)", self.x, self.y, self.z)
 end
 
+function Vector3:get()
+    return {self.x,self.y,self.z}
+end
 
 return Vector3

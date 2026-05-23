@@ -1,50 +1,45 @@
 local GAME = {}
 
-local shader = LG.newShader( LF.read('shader/main.glsl') )
 local camera   = require 'class.camera' :new{ x=0, y=80, z=6 }
+LG.camera = camera
 
-local matClass = require 'math.mat4'
-local transform = matClass:new()
+local SkyRender = require( ThisDir()        .. '.sky_render')
+local TerrainRender = require( ThisDir()    .. '.terrain_render')
+local FogRender = require( ThisDir()        .. '.fog_render')
 
-
-local atlas    = LG.newImage('pack/atlas.png')
-atlas:setFilter('nearest','linear')
-
-local atlasMap = json.decode(LF.read('pack/atlas_map.json'))
-local uvOffsets = {
-    atlasMap.pad / atlas:getWidth(),
-    (atlasMap.cell - 2 * atlasMap.pad) / atlas:getWidth(),
+local scene = love.graphics.newCanvas()
+local posCanv   = love.graphics.newCanvas(nil,nil, {format='rgba16f', readable=true})
+local depthCanv = love.graphics.newCanvas(nil,nil, {format="depth24", readable=true})
+LG.renderSetup = { 
+    scene, posCanv,
+    scene = scene, 
+    posCanv = posCanv,
+    depth = true , depthstencil = depthCanv 
 }
 
-local terrain = require'importer.terrain'.load{
-    path = 'chunks',
-    tex  = atlas,
-    map  = atlasMap,
-}
+LG.lightColor = {1.0, 0.98, 0.8}
 
+local time = 0
 
 function GAME:draw()
-
     local dt = LT.getDelta()
+    time=time+dt*0.1
+
     camera:update(dt)
 
-    LG.setDepthMode('lequal', true)
-    LG.setMeshCullMode('back')
+    LG.viewProj = camera:viewproj()
+    LG.camPos   = camera.pos:get()
+    LG.lightPos   = {math.sin( time ), math.cos( time ), 0}
 
-    shader:send('viewproj',   camera:viewproj())
-    shader:send('uvOffsets',  uvOffsets)
-    LG.setShader(shader)
-
-    for _,chunk in pairs( terrain ) do
-        transform:setTransformationMatrix({chunk.x,0,chunk.z},{0,0,0},{1,1,1})
-        shader:send('transform',transform)
-        LG.draw(chunk.mesh)
-    end
-
+    SkyRender()
+    TerrainRender()
+    
     LG.setShader()
-    LG.setDepthMode('always', false)
-    LG.setMeshCullMode('none')
+    LG.draw( scene, 0, LG.getHeight(), 0, 1, -1 )
 
+    FogRender()
+
+    LG.setDepthMode('always', false)
     LG.print(LT.realFPS)
 end
 

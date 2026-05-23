@@ -1,4 +1,5 @@
 local M = {}
+local passList = require 'importer.terrain_pass_list'
 
 local fmt = {
     { "VertexPosition", "float", 3 },
@@ -31,8 +32,9 @@ function M.load(path, atlasMap, atlasW)
     local mats = {}
 
     local positions, normals, texcoords = {}, {}, {}
-    local vertices, indices, lookup = {}, {}, {}
+    local vertices, indices, indicesNoCull, lookup = {}, {}, {}, {}
     local curMat = ''
+    local curTexName = ''
 
     local cellUV = atlasMap.cell / atlasW
     local cols   = math.floor(atlasW / atlasMap.cell + 0.5)
@@ -75,24 +77,31 @@ function M.load(path, atlasMap, atlasW)
             texcoords[#texcoords+1] = { tonumber(u), 1 - tonumber(v) }
         elseif tag == 'usemtl' then
             curMat = rest:match('^%s*(.-)%s*$')
+            local name = curMat:gsub('^minecraft_%a+%-', '')
+            curTexName = name
         elseif tag == 'f' then
             local fv = {}
             for token in rest:gmatch('%S+') do
                 local vi,ti,ni = token:match('^(%d+)/?(%d*)/?(%d*)$')
                 fv[#fv+1] = addVert(tonumber(vi), tonumber(ti) or nil, tonumber(ni) or nil, curMat)
             end
+            local dst = passList.no_cull[curTexName] and indicesNoCull or indices
             for i = 2, #fv - 1 do
-                indices[#indices+1] = fv[1]
-                indices[#indices+1] = fv[i]
-                indices[#indices+1] = fv[i+1]
+                dst[#dst+1] = fv[1]
+                dst[#dst+1] = fv[i]
+                dst[#dst+1] = fv[i+1]
             end
         end
         ::continue::
     end
 
-    local mesh = love.graphics.newMesh(fmt, vertices, 'triangles')
-    mesh:setVertexMap(indices)
-    return mesh
+    local mainMesh = love.graphics.newMesh(fmt, vertices, 'triangles')
+    mainMesh:setVertexMap(indices)
+
+    local noCullMesh = love.graphics.newMesh(fmt, vertices, 'triangles')
+    noCullMesh:setVertexMap(indicesNoCull)
+
+    return mainMesh, noCullMesh
 end
 
 return M

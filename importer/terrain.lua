@@ -16,9 +16,10 @@ function M.load( args )
     for _, filename in ipairs(files) do
         local x, z = parse_name(filename)
         if x then
-            local mesh = objLoader.load(dir .. '/' .. filename, args.map, args.tex:getWidth())
-            mesh:setTexture( tex ) 
-            chunks[x .. '_' .. z] = {x=x, z=z, mesh=mesh}
+            local mainMesh, noCullMesh = objLoader.load(dir .. '/' .. filename, args.map, args.tex:getWidth())
+            mainMesh:setTexture( tex )
+            noCullMesh:setTexture( tex )
+            chunks[x .. '_' .. z] = {x=x, z=z, mainPass=mainMesh, noCullPass=noCullMesh}
         end
     end
     return chunks

@@ -1,10 +1,13 @@
 -- importer/formats/obj.lua
--- Parses OBJ + MTL. Returns raw data, no love.graphics.
---
--- load(path) -> { [i] = { name, textureName, vertices, indices } }
--- vertices: array of { x,y,z, nx,ny,nz, u,v }
+-- load(path) -> { [i] = love.Mesh }  (each mesh has :getTexture() set if MTL had map_Kd)
 
 local M = {}
+
+local fmt = {
+    { 'VertexPosition', 'float', 3 },
+    { 'VertexNormal',   'float', 3 },
+    { 'VertexTexCoord', 'float', 2 },
+}
 
 local function parseMtl(path)
     local src = love.filesystem.read(path)
@@ -21,7 +24,6 @@ local function parseMtl(path)
         if tex and cur then
             local name = tex:match('^%s*(.-)%s*$')
             name = name:match('([^/\\]+)$') or name
-            name = name:match('^(.+)%..+$') or name
             mats[cur].textureName = name
         end
     end
@@ -103,13 +105,33 @@ function M.load(path)
         ::continue::
     end
 
+    local meshes = {}
     for _, g in ipairs(groups) do
-        g._lookup = nil
-        local m = mats[g.matName]
-        g.textureName = (m and m.textureName) or g.matName
+        if #g.vertices == 0 then goto skip end
+
+        local mesh = love.graphics.newMesh(fmt, g.vertices, 'triangles')
+        mesh:setVertexMap(g.indices)
+
+        local matInfo = mats[g.matName]
+        local texName = matInfo and matInfo.textureName
+        if texName then
+            local texPath = (dir ~= '' and (dir .. '/' .. texName) or texName)
+            -- try with common extensions if no extension present
+            local function tryLoad(p)
+                local ok, img = pcall(love.graphics.newImage, p)
+                return ok and img or nil
+            end
+            local img = tryLoad(texPath)
+                     or tryLoad(texPath .. '.png')
+                     or tryLoad(texPath .. '.jpg')
+            if img then mesh:setTexture(img) end
+        end
+
+        meshes[#meshes + 1] = mesh
+        ::skip::
     end
 
-    return groups
+    return meshes
 end
 
 return M
