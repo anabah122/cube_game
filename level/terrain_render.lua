@@ -1,53 +1,100 @@
+local Frustum = require 'class.frustum'
 
-
-local atlas    = LG.newImage('pack/atlas.png')
-atlas:setFilter('linear','nearest')
-
-local atlasMap = json.decode(LF.read('pack/atlas_map.json'))
-local uvOffsets = {
-    atlasMap.pad / atlas:getWidth(),
-    (atlasMap.cell - 2 * atlasMap.pad) / atlas:getWidth(),
+local atlas  = require 'importer.atlas'.load{
+    image = 'pack/atlas.png',
+    map   = 'pack/atlas_map.json',
 }
-
-local terrain = require'importer.terrain'.load{
+local chunks = require 'importer.terrain'.load{
     path = 'chunks',
-    tex  = atlas,
-    map  = atlasMap,
+    tex  = atlas.texture,
 }
 
-local matClass = require 'math.mat4'
-local transform = matClass:new():setTransformationMatrix({0,0,0},{0,0,0},{1,1,1})
+local frustum = Frustum:new()
+local meshSH  = LG.newShader(LF.read('shader/main.glsl'))
+local lodSH   = LG.newShader(LF.read('shader/lod.glsl'))
 
-local meshSH = LG.newShader( LF.read('shader/main.glsl') )
+local w, h = LG.getDimensions()
+local meshColor = LG.newCanvas(w, h)
+local meshDepth = LG.newCanvas(w, h, { format = 'depth24', readable = true })
+local lodColor  = LG.newCanvas(w, h)
+local lodDepth  = LG.newCanvas(w, h, { format = 'depth24', readable = true })
 
-return function( )
-    LG.setDepthMode('lequal', true)
-    LG.setFrontFaceWinding('cw')
-    LG.setShader( meshSH )
-    LG.setCanvas( LG.renderSetup ) 
+local meshSetup = { meshColor, depth = true, depthstencil = meshDepth }
+local lodSetup  = { lodColor,  depth = true, depthstencil = lodDepth  }
 
-    LG.clear( 0, 0, 0, 0 )
+local LOD_START = 520     -- must match Chunk.switchDistance - Chunk.overlap-ish
+local LOD_END   = 760     -- past this, mesh is fully gone / lod fully opaque
 
+local stats = { drawn = 0, culled = 0, t = 0 }
+
+
+local function DrawChunks()
+    -- pass 1: full-detail chunks
+    LG.setCanvas(meshSetup)
+    LG.clear(0, 0, 0, 0)
+    LG.setShader(meshSH)
     meshSH:send('viewproj',   LG.viewProj)
-    meshSH:send('uvOffsets',  uvOffsets)
-    meshSH:send('min_alpha',  0.8)
-    meshSH:send('main_tex',   atlas)
+    meshSH:send('uvOffsets',  atlas.uvOffsets)
+    meshSH:send('cellUV',     atlas.cellUV)
+    meshSH:send('atlasCols',  atlas.cols)
+    meshSH:send('main_tex',   atlas.texture)
     meshSH:send('lightPos',   LG.lightPos)
     meshSH:send('lightColor', LG.lightColor)
+    meshSH:send('camPos',     LG.camPos)
+    meshSH:send('lodStart',   LOD_START)
+    meshSH:send('lodEnd',     LOD_END)
+    for i = 1, #chunks do
+        local ch = chunks[i]
+        if ch.visible and ch.drawMesh then LG.draw(ch.mesh) end
+    end
+end
 
-    -- main pass 
-    LG.setMeshCullMode('back')
-    for _,chunk in pairs( terrain ) do
-        LG.draw(chunk.mainPass)
+local function DrawLoads()
+    -- pass 2: lods
+    LG.setCanvas(lodSetup)
+    LG.clear(0, 0, 0, 0)
+    LG.setShader(lodSH)
+    lodSH:send('viewproj', LG.viewProj)
+    lodSH:send('camPos',   LG.camPos)
+    lodSH:send('lightPos', LG.lightPos)
+    lodSH:send('lightColor', LG.lightColor)
+    lodSH:send('lodStart',   LOD_START)
+    lodSH:send('lodEnd',     LOD_END)
+    for i = 1, #chunks do
+        local ch = chunks[i]
+        if ch.visible and ch.drawLod then LG.draw(ch.lod) end
+    end
+end
+
+
+return function()
+    frustum:update(LG.viewProj)
+    local camPos = LG.camPos
+    local drawn, culled = 0, 0
+    for i = 1, #chunks do
+        local ch = chunks[i]
+        ch:cull(frustum, camPos)
+        if ch.visible then drawn = drawn + 1 else culled = culled + 1 end
     end
 
-    -- no cull pass 
+    LG.setDepthMode('lequal', true)
     LG.setMeshCullMode('none')
-    for _,chunk in pairs( terrain ) do
-        LG.draw(chunk.noCullPass)
-    end
 
+
+    DrawChunks()
+    --DrawLoads()
+
+    -- composite into the screen
     LG.setCanvas()
-    LG.setFrontFaceWinding('ccw')
+    LG.setShader()
+    LG.setDepthMode('always', false)
+    LG.setBlendMode('alpha')
+    LG.draw(lodColor,  0, h, 0, 1, -1)
+    LG.draw(meshColor, 0, h, 0, 1, -1)
 
+    stats.t = stats.t + love.timer.getDelta()
+    if stats.t >= 1 then
+        stats.t = 0
+        print(('[terrain] drawn=%d culled=%d / %d'):format(drawn, culled, #chunks))
+    end
 end

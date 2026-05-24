@@ -1,4 +1,6 @@
 run.bat
 blender_addon.zip
 pack/textures
-pack/chunks
+chunks
+tex
+terrain_converter

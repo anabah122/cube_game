@@ -5,17 +5,7 @@ LG.camera = camera
 
 local SkyRender = require( ThisDir()        .. '.sky_render')
 local TerrainRender = require( ThisDir()    .. '.terrain_render')
-local FogRender = require( ThisDir()        .. '.fog_render')
 
-local scene = love.graphics.newCanvas()
-local posCanv   = love.graphics.newCanvas(nil,nil, {format='rgba16f', readable=true})
-local depthCanv = love.graphics.newCanvas(nil,nil, {format="depth24", readable=true})
-LG.renderSetup = { 
-    scene, posCanv,
-    scene = scene, 
-    posCanv = posCanv,
-    depth = true , depthstencil = depthCanv 
-}
 
 LG.lightColor = {1.0, 0.98, 0.8}
 
@@ -35,9 +25,6 @@ function GAME:draw()
     TerrainRender()
     
     LG.setShader()
-    LG.draw( scene, 0, LG.getHeight(), 0, 1, -1 )
-
-    FogRender()
 
     LG.setDepthMode('always', false)
     LG.print(LT.realFPS)

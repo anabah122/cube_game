@@ -1,6 +1,6 @@
 
 local skySH = LG.newShader( LF.read('shader/sky.glsl'))
-local box = require'importer'.loadOBJ('box.obj')[1]
+local box = require'importer'.loadOBJ('data/box.obj')[1]
 
 return function()
     skySH:send( 'viewproj', LG.viewProj )
