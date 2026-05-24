@@ -25,7 +25,7 @@ function M.load(args)
     tex:setFilter('linear', 'nearest')
 
     local map = json.decode(love.filesystem.read(args.map))
-    local w = tex:getWidth()
+    local w, h = tex:getWidth(), tex:getHeight()
 
     return {
         texture   = tex,
@@ -36,7 +36,7 @@ function M.load(args)
             map.pad / w,
             (map.cell - 2 * map.pad) / w,
         },
-        cellUV    = map.cell / w,
+        cellUV    = { map.cell / w, map.cell / h },
         cols      = math.floor(w / map.cell + 0.5),
     }
 end

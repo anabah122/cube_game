@@ -21,7 +21,7 @@ attribute float VertexMatIdx;
 attribute vec4  VertexNormal;
 
 uniform mat4 viewproj;
-uniform float cellUV;   // atlas cell size in UV
+uniform vec2  cellUV;   // atlas cell size in UV (x = cell/W, y = cell/H)
 uniform float atlasCols; // tiles per row
 
 vec4 position(mat4 _t, vec4 vertex_position) {
@@ -48,8 +48,6 @@ uniform Image main_tex;
 uniform vec3  lightPos;
 uniform vec3  lightColor;
 uniform vec3  camPos;
-uniform float lodStart;
-uniform float lodEnd;
 
 float wrap = 0.4;
 vec3  ambientColor = vec3(0.4);
@@ -63,7 +61,7 @@ const vec3  fogColor = vec3(0.1, 0.1, 0.15);
 vec4 effect(vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords)
 {
 
-    vec2 uv = vCellUV + uvOffsets.x + fract(vTexCoord) * uvOffsets.y;
+    vec2 uv = vCellUV + uvOffsets.xx + fract(vTexCoord) * uvOffsets.yy;
 
     vec4 col  = Texel(main_tex, uv);
     //if (col.a < min_alpha) discard;
@@ -84,8 +82,7 @@ vec4 effect(vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords)
     float sunEffect = pow(max(dot(viewDir, lpos), 0.0), 8.0);
     vec3  finalFog  = mix(fogColor, lightColor, sunEffect);
 
-    float a = 1.0 - smoothstep(lodStart, lodEnd, dist);
-    return vec4(mix(lit, finalFog, fogAmount), a);
+    return vec4(mix(lit, finalFog, fogAmount), 1.0);
 }
 
 #endif

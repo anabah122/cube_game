@@ -16,17 +16,13 @@ local meshFmt = {
     { "VertexMatIdx",   "float", 1 },
 }
 
-local lodFmt = {
-    { "VertexPosition", "float", 3 },
-}
-
 local function parseName(filename)
     local x, z = filename:match('^(-?%d+)_(-?%d+)%.bin$')
     if x then return tonumber(x), tonumber(z) end
 end
 
-local function buildMesh(slice, fmt, tex)
-    local m = love.graphics.newMesh(fmt, slice.vcount, 'triangles', 'static')
+local function buildMesh(slice, tex)
+    local m = love.graphics.newMesh(meshFmt, slice.vcount, 'triangles', 'static')
     m:setVertices(slice.verts)
     m:setVertexMap(slice.inds, 'uint32')
     if tex then m:setTexture(tex) end
@@ -65,8 +61,7 @@ function M.load(args)
         local ch = Chunk:new{
             x         = d.x,
             z         = d.z,
-            mesh      = buildMesh(d.mesh, meshFmt, tex),
-            lod       = buildMesh(d.lod,  lodFmt,  nil),
+            mesh      = buildMesh(d.mesh, tex),
             aabb      = d.aabb,
             sphere    = d.sphere,
             collision = d.collision,

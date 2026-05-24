@@ -3,7 +3,6 @@
 -- so the main thread can spawn meshes without re-copying the data.
 --
 -- Mesh verts: { x, y, z, n0, n1, n2, n3, u, v, mat }   (28 bytes)
--- LOD verts : { x, y, z }                              (12 bytes)
 
 require 'love.filesystem'
 require 'love.data'
@@ -22,16 +21,10 @@ typedef struct __attribute__((packed)) {
     float    u, v;
     float    mat;
 } terrain_vert_t;
-
-typedef struct __attribute__((packed)) {
-    float px, py, pz;
-} terrain_lod_vert_t;
 ]]
 
 local MESH_VSIZE = ffi.sizeof('terrain_vert_t')
-local LOD_VSIZE  = ffi.sizeof('terrain_lod_vert_t')
 assert(MESH_VSIZE == 28, 'mesh vertex layout size mismatch')
-assert(LOD_VSIZE  == 12, 'lod vertex layout size mismatch')
 
 local jobCh = love.thread.getChannel('terrain_load_jobs')
 local resCh = love.thread.getChannel('terrain_load_results')
@@ -63,20 +56,6 @@ local function packMesh(slice)
     return { verts = vBD, vcount = nV, inds = iBD, icount = nI }
 end
 
-local function packLod(slice)
-    local verts = slice.verts
-    local nV = #verts
-    local vBD = love.data.newByteData(nV * LOD_VSIZE)
-    local vPtr = ffi.cast('terrain_lod_vert_t*', vBD:getFFIPointer())
-    for i = 1, nV do
-        local s = verts[i]
-        local d = vPtr[i - 1]
-        d.px = s[1]; d.py = s[2]; d.pz = s[3]
-    end
-    local iBD, nI = packIndices(slice.indices)
-    return { verts = vBD, vcount = nV, inds = iBD, icount = nI }
-end
-
 while true do
     local job = jobCh:demand()
     if job == 'STOP' then break end
@@ -90,6 +69,5 @@ while true do
         sphere    = data.sphere,
         collision = data.collision,
         mesh = packMesh(data.mesh),
-        lod  = packLod(data.lod),
     }
 end
